@@ -37,6 +37,10 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
       newErrors.physicalGoal = "Seleziona un obiettivo.";
     }
     
+    if (!formData.muscleMass) {
+      newErrors.muscleMass = "Seleziona la tua massa muscolare percepita.";
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -149,6 +153,28 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
           />
           {errors.currentWeightKg && (
             <p className="text-red-500 text-xs mt-2">{errors.currentWeightKg}</p>
+          )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="muscleMass" className="block text-gray-300 mb-2 text-sm">
+            Come valuti la tua massa muscolare attuale?
+          </label>
+          <select
+            id="muscleMass"
+            name="muscleMass"
+            className={`w-full rounded-md bg-secondary border ${errors.muscleMass ? 'border-red-500' : 'border-gray-700'} p-3 text-white`}
+            onChange={handleChange}
+          >
+            <option value="">Seleziona...</option>
+            <option value="minimally_muscular">Minimamente muscoloso</option>
+            <option value="less_muscular">Poco muscoloso</option>
+            <option value="normal">Normale</option>
+            <option value="muscular">Muscoloso</option>
+            <option value="very_muscular">Molto muscoloso</option>
+          </select>
+          {errors.muscleMass && (
+            <p className="text-red-500 text-xs mt-2">{errors.muscleMass}</p>
           )}
         </div>
 

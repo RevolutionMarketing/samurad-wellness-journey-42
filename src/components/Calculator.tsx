@@ -11,6 +11,7 @@ export type UserData = {
   currentWeightKg: number;
   activityLevelMultiplier: number;
   physicalGoal: 'maintain' | 'leaner' | 'stronger' | 'healthyWeight' | 'other';
+  muscleMass: 'minimally_muscular' | 'less_muscular' | 'normal' | 'muscular' | 'very_muscular';
 };
 
 export type CalculationResults = {
@@ -28,7 +29,7 @@ const Calculator = () => {
   const [results, setResults] = useState<CalculationResults | null>(null);
 
   const calculateResults = (data: UserData) => {
-    const { age, gender, heightCm, currentWeightKg, activityLevelMultiplier, physicalGoal } = data;
+    const { age, gender, heightCm, currentWeightKg, activityLevelMultiplier, physicalGoal, muscleMass } = data;
     
     // Basic calculations
     const heightM = heightCm / 100;
@@ -43,35 +44,73 @@ const Calculator = () => {
     const bmr = calculateBMR(currentWeightKg, heightCm, age, gender);
     const maintenanceCalories = Math.round(bmr * activityLevelMultiplier);
 
-    // Determine target weight and interpretive message
+    // Determine target weight and interpretive message based on muscle mass
     let targetWeight = currentWeightKg;
     let interpretiveNote = "";
     let timeCalculationApplicable = true;
+    let recompTimeNote = "";
+    
+    // Define BMI target for "leaner" based on muscle mass
+    let targetBmiForLeanerGoal;
+    switch (muscleMass) {
+      case 'very_muscular':       targetBmiForLeanerGoal = 24.5; break; // Higher to preserve muscles
+      case 'muscular':            targetBmiForLeanerGoal = 23.5; break;
+      case 'normal':              targetBmiForLeanerGoal = 21.8; break; // Center of BMI range
+      case 'less_muscular':       targetBmiForLeanerGoal = 20.5; break;
+      case 'minimally_muscular':  targetBmiForLeanerGoal = 19.5; break;
+      default:                    targetBmiForLeanerGoal = 21.8; // Fallback
+    }
+    targetBmiForLeanerGoal = Math.max(18.5, Math.min(targetBmiForLeanerGoal, 24.9)); // Ensure within healthy range
+    const leanerTargetWeightBasedOnMuscle = parseFloat((targetBmiForLeanerGoal * heightM * heightM).toFixed(1));
+    
+    const formatMuscleMass = (value: string): string => {
+      const map: Record<string, string> = {
+        "minimally_muscular": "Minimamente Muscoloso",
+        "less_muscular": "Poco Muscoloso",
+        "normal": "Normale",
+        "muscular": "Muscoloso",
+        "very_muscular": "Molto Muscoloso"
+      };
+      return map[value] || "Non specificata";
+    };
     
     if (bmi > 24.9) {
       // OVERWEIGHT/OBESE
-      interpretiveNote = `Attualmente il tuo BMI (${bmi.toFixed(1)}) indica ${weightCategory.split('(')[0].trim()}. Il tuo range di peso salutare è ${healthyWeightRange} kg. `;
+      const muscleMassText = formatMuscleMass(muscleMass);
+      interpretiveNote = `Attualmente il tuo BMI (${bmi.toFixed(1)}) indica ${weightCategory.split('(')[0].trim()}. Il tuo range di peso salutare è ${healthyWeightRange} kg. Considerata la tua massa muscolare percepita ('${muscleMassText}')... `;
       
       switch (physicalGoal) {
         case 'leaner':
-          targetWeight = Math.max(healthyWeightLowerBound, midHealthyBmiWeight);
-          interpretiveNote += `Per 'Diventare più Snello/Definito', un buon obiettivo è mirare a circa ${targetWeight.toFixed(1)} kg. Questo peso si colloca idealmente nel tuo range salutare per favorire una silhouette più asciutta.`;
+          targetWeight = leanerTargetWeightBasedOnMuscle;
+          interpretiveNote += `per 'Diventare più Snello/Definito', un obiettivo appropriato è mirare a circa ${targetWeight.toFixed(1)} kg. `;
+          if (muscleMass === 'very_muscular' || muscleMass === 'muscular') {
+            interpretiveNote += `Questo peso ti permetterebbe di ottimizzare la definizione mantenendo la tua notevole massa muscolare. Il focus sarà sulla perdita di grasso e sulla ricomposizione corporea.`;
+            if (Math.abs(currentWeightKg - targetWeight) < 4 && bmi < 28) {
+              recompTimeNote = ` Il percorso di ricomposizione corporea per accentuare la definizione, pur mantenendo la tua massa muscolare, richiede un impegno e un tempo (spesso alcuni mesi) paragonabile a quello di una significativa trasformazione per una persona con corporatura media. Questo si concentra su allenamento specifico e una precisa strategia nutrizionale.`;
+            }
+          }
           break;
         case 'healthyWeight':
           targetWeight = healthyWeightUpperBound;
-          interpretiveNote += `Per 'Raggiungere un Peso Salutare', il primo traguardo è mirare a ${targetWeight.toFixed(1)} kg (il limite superiore del tuo range). Una volta raggiunto, potresti valutare con un professionista un'ulteriore graduale ottimizzazione all'interno del range (es. 1-2 kg al mese in modo sostenibile), se indicato per la tua composizione corporea.`;
+          interpretiveNote += `per 'Raggiungere un Peso Salutare', il primo traguardo è ${targetWeight.toFixed(1)} kg. `;
+          if (muscleMass === 'very_muscular' || muscleMass === 'muscular') {
+            interpretiveNote += `Data la tua muscolatura, è possibile che il tuo peso sia elevato anche a causa della massa magra. Raggiungere il limite superiore del BMI è un riferimento; una valutazione della composizione corporea con un professionista è cruciale per definire il tuo peso forma ideale. `;
+          }
+          interpretiveNote += `Successivamente, si potrà valutare un'ulteriore ottimizzazione.`;
           break;
         case 'maintain':
           targetWeight = healthyWeightUpperBound;
-          interpretiveNote += `Hai scelto 'Mantenere un Peso Normopeso', ma attualmente non lo sei. È prima necessario raggiungere il range salutare. La stima seguente è per arrivare a ${targetWeight.toFixed(1)} kg.`;
+          interpretiveNote += `hai scelto 'Mantenere un Peso Normopeso', ma attualmente non lo sei. È prima necessario raggiungere il range salutare. La stima è per arrivare a ${targetWeight.toFixed(1)} kg.`;
           break;
         case 'stronger':
-          targetWeight = healthyWeightUpperBound;
-          interpretiveNote += `Per 'Diventare più Robusto' essendo in sovrappeso, è consigliabile prima ridurre il grasso in eccesso per migliorare la salute generale e la composizione corporea. Un primo obiettivo è ${targetWeight.toFixed(1)} kg. L'aumento di massa muscolare richiederà poi allenamento e dieta specifici.`;
+          targetWeight = (muscleMass === 'very_muscular' || muscleMass === 'muscular') ? 
+            Math.max(leanerTargetWeightBasedOnMuscle, healthyWeightLowerBound) : 
+            healthyWeightUpperBound;
+          interpretiveNote += `per 'Diventare più Robusto', essendo in sovrappeso, è consigliabile prima ottimizzare la composizione corporea. Un obiettivo di peso iniziale potrebbe essere ${targetWeight.toFixed(1)} kg. L'aumento di forza e massa muscolare richiederà poi allenamento e dieta mirati.`;
           break;
         default: // 'other'
           targetWeight = healthyWeightUpperBound;
-          interpretiveNote += `Considerando il tuo obiettivo 'Altro', un primo passo fondamentale è rientrare nel range di peso salutare, mirando a ${targetWeight.toFixed(1)} kg. Poi, potrai definire meglio i passi successivi con un professionista.`;
+          interpretiveNote += `per il tuo obiettivo 'Altro', un primo passo è rientrare nel range salutare, mirando a ${targetWeight.toFixed(1)} kg.`;
           break;
       }
     } else if (bmi < 18.5) {
@@ -83,8 +122,7 @@ const Calculator = () => {
       
       switch (physicalGoal) {
         case 'leaner':
-          interpretiveNote += "L'obiettivo 'Diventare più Snello' non è appropriato se sei sottopeso. È cruciale concentrarsi prima sul raggiungere un peso salutare. Contatta un professionista.";
-          targetWeight = currentWeightKg;
+          interpretiveNote += `L'obiettivo 'Diventare più Snello' non è appropriato se sei sottopeso. È cruciale concentrarsi prima sul raggiungere un peso salutare (almeno ${healthyWeightLowerBound.toFixed(1)} kg). Se vuoi un aspetto definito, punta a guadagnare massa magra.`;
           break;
         case 'healthyWeight':
         case 'maintain':
@@ -95,19 +133,26 @@ const Calculator = () => {
       }
     } else {
       // NORMAL WEIGHT
-      interpretiveNote = `Complimenti! Il tuo BMI (${bmi.toFixed(1)}) è NORMOPESO (range: ${healthyWeightRange} kg). `;
+      const muscleMassText = formatMuscleMass(muscleMass);
+      interpretiveNote = `Complimenti! Il tuo BMI (${bmi.toFixed(1)}) è NORMOPESO (range: ${healthyWeightRange} kg). Considerata la tua massa muscolare percepita ('${muscleMassText}')... `;
       
       targetWeight = currentWeightKg;
       timeCalculationApplicable = false;
       
       switch (physicalGoal) {
         case 'leaner':
-          if (currentWeightKg > midHealthyBmiWeight + 1) {
-            targetWeight = midHealthyBmiWeight;
-            interpretiveNote += `Per un aspetto più 'Snello/Definito', potresti mirare a un peso intorno a ${targetWeight.toFixed(1)} kg, pur rimanendo comodamente nel tuo range salutare. La stima del tempo si riferisce a questo.`;
+          if (currentWeightKg > leanerTargetWeightBasedOnMuscle + 0.5) {
+            targetWeight = leanerTargetWeightBasedOnMuscle;
+            interpretiveNote += `per un aspetto più 'Snello/Definito', potresti mirare a un peso intorno a ${targetWeight.toFixed(1)} kg. `;
+            if (muscleMass === 'very_muscular' || muscleMass === 'muscular') {
+              interpretiveNote += `Questo ti aiuterà a massimizzare la definizione preservando la massa muscolare. Il focus sarà sulla ricomposizione corporea.`;
+              if (Math.abs(currentWeightKg - targetWeight) < 3) { 
+                recompTimeNote = ` Data la potenziale minima differenza di peso, il tuo focus sarà primariamente sulla ricomposizione corporea (perdita di grasso mantenendo/aumentando il muscolo), un processo che richiede dedizione e tempo significativi, spesso diversi mesi.`;
+              }
+            }
             timeCalculationApplicable = true;
           } else {
-            interpretiveNote += "Ti trovi già in un'ottima zona del tuo range di peso salutare per un fisico snello. Un'ulteriore 'definizione' dipenderà principalmente dalla ricomposizione corporea (allenamento e alimentazione mirata) piuttosto che da una significativa perdita di peso.";
+            interpretiveNote += `sei già a un peso ottimale o inferiore per un obiettivo 'Snello/Definito'. Ulteriori cambiamenti riguarderanno la ricomposizione corporea (allenamento e dieta mirati) piuttosto che una significativa perdita di peso.`;
           }
           break;
         case 'maintain':
@@ -115,44 +160,56 @@ const Calculator = () => {
           interpretiveNote += "Il tuo obiettivo è mantenere questo stato di forma o sei già in un peso salutare. Ottimo lavoro!";
           break;
         case 'stronger':
-          interpretiveNote += "Essendo normopeso, per 'Diventare più Robusto' dovrai focalizzarti su allenamento di forza e un surplus calorico controllato e di qualità per la crescita muscolare, monitorando la composizione corporea.";
+          interpretiveNote += `essendo normopeso, per 'Diventare più Robusto' dovrai focalizzarti su allenamento di forza e un surplus calorico controllato per la crescita muscolare. Se il tuo peso attuale è nella fascia bassa del normopeso potresti considerare un leggero aumento di peso controllato.`;
+          if ((muscleMass === 'very_muscular' || muscleMass === 'muscular') && currentWeightKg < midHealthyBmiWeight) {
+            targetWeight = Math.min(healthyWeightUpperBound, midHealthyBmiWeight + 2);
+            if (targetWeight > currentWeightKg) timeCalculationApplicable = false;
+            else targetWeight = currentWeightKg;
+          }
           break;
         default: // 'other'
-          interpretiveNote += "Per il tuo obiettivo specifico, essendo già normopeso, ti consigliamo di consultare un professionista per un piano dettagliato.";
+          interpretiveNote += "per il tuo obiettivo specifico, essendo già normopeso, ti consigliamo di consultare un professionista per un piano dettagliato.";
           break;
       }
+    }
+
+    if (recompTimeNote) {
+      interpretiveNote += recompTimeNote;
     }
 
     // Calculate time to goal
     let timeToGoal = "Non pertinente per l'obiettivo e la situazione attuale.";
     const weightToChange = currentWeightKg - targetWeight;
     
-    if (weightToChange > 0 && timeCalculationApplicable) {
-      // WEIGHT LOSS
-      const totalWeeksEstimated = calculateWeightLossTime(currentWeightKg, targetWeight, age, gender, activityLevelMultiplier);
+    if (weightToChange > 0.1 && timeCalculationApplicable) {
+      // WEIGHT LOSS (at least 100g)
+      const totalWeeksEstimated = calculateWeightLossTime(currentWeightKg, targetWeight, age, gender, activityLevelMultiplier, muscleMass);
       
       if (totalWeeksEstimated > 0.1) {
         const totalMonthsEstimated = (totalWeeksEstimated / 4.345).toFixed(1);
         
         if (totalWeeksEstimated < 1) {
-          timeToGoal = `Meno di una settimana (obiettivo molto vicino).`;
+          timeToGoal = `Meno di una settimana (obiettivo ${targetWeight.toFixed(1)} kg molto vicino).`;
         } else if (totalWeeksEstimated <= 5) {
           timeToGoal = `${totalWeeksEstimated.toFixed(0)} settimane circa.`;
         } else {
           timeToGoal = `${totalWeeksEstimated.toFixed(0)} settimane (circa ${totalMonthsEstimated} mesi).`;
         }
         
-        timeToGoal += ` (Stima per raggiungere ${targetWeight.toFixed(1)} kg con perdita progressiva).`;
+        if (totalWeeksEstimated >= 1) {
+          timeToGoal += ` (Stima per raggiungere ${targetWeight.toFixed(1)} kg con perdita progressiva).`;
+        }
       } else {
-        timeToGoal = `L'obiettivo di peso (${targetWeight.toFixed(1)} kg) è praticamente raggiunto o richiede un cambiamento minimo.`;
+        timeToGoal = `L'obiettivo di peso (${targetWeight.toFixed(1)} kg) è praticamente raggiunto.`;
       }
-    } else if (weightToChange < 0) {
-      // WEIGHT GAIN
+    } else if (weightToChange < -0.1) {
+      // WEIGHT GAIN (at least 100g)
       const weightToGainAbs = Math.abs(weightToChange);
-      let weeklyGainRate = 0.30; // kg/week base for gain (more controlled)
+      let weeklyGainRate = 0.25; // Base for gain
       
-      if (gender === 'male' && physicalGoal === 'stronger') weeklyGainRate += 0.1;
-      if (age < 25 && physicalGoal === 'stronger') weeklyGainRate += 0.1;
+      if (gender === 'male') weeklyGainRate += 0.05;
+      if (age < 30 && (physicalGoal === 'stronger' || muscleMass === 'very_muscular' || muscleMass === 'muscular')) weeklyGainRate += 0.1;
+      if (parseFloat(activityLevelMultiplier.toString()) > 1.5) weeklyGainRate += 0.05;
       
       weeklyGainRate = Math.max(0.15, Math.min(weeklyGainRate, 0.5));
       const weeksToGain = weightToGainAbs / weeklyGainRate;
@@ -161,34 +218,35 @@ const Calculator = () => {
         const monthsToGain = (weeksToGain / 4.345).toFixed(1);
         
         if (weeksToGain < 1) {
-          timeToGoal = `Meno di una settimana (obiettivo molto vicino).`;
+          timeToGoal = `Meno di una settimana (obiettivo ${targetWeight.toFixed(1)} kg molto vicino).`;
         } else if (weeksToGain <= 5) {
           timeToGoal = `${weeksToGain.toFixed(0)} settimane circa.`;
         } else {
           timeToGoal = `${weeksToGain.toFixed(0)} settimane (circa ${monthsToGain} mesi).`;
         }
         
-        timeToGoal += ` (Stima per guadagnare ${weightToGainAbs.toFixed(1)} kg e raggiungere ${targetWeight.toFixed(1)} kg).`;
+        if (weeksToGain >= 1) {
+          timeToGoal += ` (Stima per guadagnare ${weightToGainAbs.toFixed(1)} kg e raggiungere ${targetWeight.toFixed(1)} kg).`;
+        }
       } else {
-        timeToGoal = `L'obiettivo di peso (${targetWeight.toFixed(1)} kg) è praticamente raggiunto o richiede un cambiamento minimo.`;
+        timeToGoal = `L'obiettivo di peso (${targetWeight.toFixed(1)} kg) è praticamente raggiunto.`;
       }
     }
 
     // Calculate weight difference text
-    let weightDifference = "N/A";
-    if (targetWeight !== currentWeightKg) {
+    let weightDifference = "Nessun cambiamento di peso significativo calcolato per l'obiettivo.";
+    if (Math.abs(currentWeightKg - targetWeight) > 0.1) {
       const diffVal = Math.abs(currentWeightKg - targetWeight).toFixed(1);
       if (currentWeightKg > targetWeight) {
         weightDifference = `${diffVal} kg da perdere per raggiungere ${targetWeight.toFixed(1)} kg (obiettivo calcolato).`;
       } else {
         weightDifference = `${diffVal} kg da guadagnare per raggiungere ${targetWeight.toFixed(1)} kg (obiettivo calcolato).`;
       }
-    } else if (bmi > 24.9 || bmi < 18.5) {
-      // Normal weight but objective doesn't involve weight change, still show diff from range
+    } else if ((bmi > 24.9 && targetWeight >= currentWeightKg) || (bmi < 18.5 && targetWeight <= currentWeightKg)) {
       if (bmi > 24.9) {
-        weightDifference = `${(currentWeightKg - healthyWeightUpperBound).toFixed(1)} kg da perdere per entrare nel range salutare.`;
+        weightDifference = `${(currentWeightKg - healthyWeightUpperBound).toFixed(1)} kg da perdere per entrare nel range salutare standard.`;
       } else {
-        weightDifference = `${(healthyWeightLowerBound - currentWeightKg).toFixed(1)} kg da guadagnare per entrare nel range salutare.`;
+        weightDifference = `${(healthyWeightLowerBound - currentWeightKg).toFixed(1)} kg da guadagnare per entrare nel range salutare standard.`;
       }
     }
 
@@ -204,8 +262,15 @@ const Calculator = () => {
     });
   };
 
-  // Helper function to estimate weight loss time with a curved approach
-  const calculateWeightLossTime = (initialWeight: number, targetWeight: number, age: number, gender: string, activityMultiplier: number): number => {
+  // Helper function to estimate weight loss time with a curved approach and muscle mass
+  const calculateWeightLossTime = (
+    initialWeight: number, 
+    targetWeight: number, 
+    age: number, 
+    gender: string, 
+    activityMultiplier: number,
+    muscleMass: string
+  ): number => {
     let weightToLoseTotal = initialWeight - targetWeight;
     
     if (weightToLoseTotal <= 0.05) {
@@ -216,7 +281,6 @@ const Calculator = () => {
     let remainingWeightToLose = weightToLoseTotal;
     
     if (weightToLoseTotal <= 4) {
-      // Small weight loss (up to 4kg) -> More direct model
       let weeklyRate = 0.45;
       
       if (gender === 'male') weeklyRate += 0.1;
@@ -229,10 +293,11 @@ const Calculator = () => {
       else if (activityMultiplier >= 1.55) weeklyRate += 0.05;
       else if (activityMultiplier < 1.3) weeklyRate -= 0.1;
       
-      weeklyRate = Math.max(0.20, Math.min(weeklyRate, 0.90));
+      if (muscleMass === 'very_muscular' || muscleMass === 'muscular') weeklyRate += 0.05;
+      
+      weeklyRate = Math.max(0.20, Math.min(weeklyRate, 0.95));
       totalWeeks = remainingWeightToLose / weeklyRate;
     } else {
-      // Larger weight loss (> 4kg) -> Phased model
       // Phase 1: First Month (4 weeks)
       let weeklyRatePhase1 = 0.70;
       
@@ -250,7 +315,10 @@ const Calculator = () => {
       else if (activityMultiplier >= 1.55) weeklyRatePhase1 += 0.10;
       else if (activityMultiplier < 1.3) weeklyRatePhase1 -= 0.15;
       
-      weeklyRatePhase1 = Math.max(0.35, Math.min(weeklyRatePhase1, 1.35)); // Max ~5.4kg/month
+      if (muscleMass === 'very_muscular') weeklyRatePhase1 += 0.1;
+      else if (muscleMass === 'muscular') weeklyRatePhase1 += 0.05;
+      
+      weeklyRatePhase1 = Math.max(0.35, Math.min(weeklyRatePhase1, 1.40));
       
       let weightLostPhase1 = Math.min(remainingWeightToLose, weeklyRatePhase1 * 4);
       remainingWeightToLose -= weightLostPhase1;
@@ -273,7 +341,10 @@ const Calculator = () => {
           else if (activityMultiplier >= 1.55) weeklyRatePhase2 += 0.05;
           else if (activityMultiplier < 1.3) weeklyRatePhase2 -= 0.10;
           
-          weeklyRatePhase2 = Math.max(0.25, Math.min(weeklyRatePhase2, 0.90));
+          if (muscleMass === 'very_muscular') weeklyRatePhase2 += 0.1;
+          else if (muscleMass === 'muscular') weeklyRatePhase2 += 0.05;
+          
+          weeklyRatePhase2 = Math.max(0.25, Math.min(weeklyRatePhase2, 0.95));
           
           let weeksPhase2 = weightToLoseInPhase2 / weeklyRatePhase2;
           totalWeeks += weeksPhase2;
@@ -290,7 +361,9 @@ const Calculator = () => {
           if (activityMultiplier >= 1.55) weeklyRatePhase3 += 0.1;
           else if (activityMultiplier < 1.3) weeklyRatePhase3 -= 0.05;
           
-          weeklyRatePhase3 = Math.max(0.15, Math.min(weeklyRatePhase3, 0.70));
+          if (muscleMass === 'very_muscular' || muscleMass === 'muscular') weeklyRatePhase3 += 0.05;
+          
+          weeklyRatePhase3 = Math.max(0.15, Math.min(weeklyRatePhase3, 0.75));
           
           let weeksPhase3 = remainingWeightToLose / weeklyRatePhase3;
           totalWeeks += weeksPhase3;
@@ -307,7 +380,7 @@ const Calculator = () => {
         <section className="hero-calculator-section bg-gradient-to-b from-black to-neutral-900 bg-fixed bg-center bg-cover py-16 min-h-screen flex flex-col items-center justify-center text-center p-4">
           <div className="max-w-3xl mx-auto w-full">
             <div className="mb-6">
-              <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">Samurad</h1>
+              <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">Samuroad</h1>
               <div className="h-1 w-24 bg-primary mx-auto mb-6"></div>
             </div>
             
@@ -341,7 +414,7 @@ const Calculator = () => {
       </main>
       
       <footer className="bg-black py-6 text-center text-gray-500 text-sm">
-        <p>&copy; {new Date().getFullYear()} Samurad. Tutti i diritti riservati.</p>
+        <p>&copy; {new Date().getFullYear()} Samuroad. Tutti i diritti riservati.</p>
       </footer>
     </div>
   );
