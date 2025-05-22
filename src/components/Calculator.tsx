@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import CalculatorForm from "./CalculatorForm";
 import ResultsDisplay from "./ResultsDisplay";
@@ -380,9 +379,8 @@ const Calculator = () => {
         <section className="hero-calculator-section bg-gradient-to-b from-black to-neutral-900 bg-fixed bg-center bg-cover py-16 min-h-screen flex flex-col items-center justify-center text-center p-4" 
                  style={{ backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.85)), url("/samuroad-hero.png")' }}>
           <div className="max-w-3xl mx-auto w-full">
-            <div className="mb-6 flex flex-col items-center">
-              <img src="/samuroad-logo.png" alt="Samuroad Logo" className="h-24 mb-3" />
-              <h1 className="text-4xl sm:text-5xl font-title text-white mb-4">SAMUROAD</h1>
+            <div className="mb-10 flex flex-col items-center">
+              <img src="/lovable-uploads/95e82436-545f-45d3-a862-63f8e984447f.png" alt="Samuroad Logo" className="h-36 mb-6" />
               <div className="h-1 w-24 bg-primary mx-auto mb-6"></div>
             </div>
             
