@@ -377,18 +377,20 @@ const Calculator = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-grow">
-        <section className="hero-calculator-section bg-gradient-to-b from-black to-neutral-900 bg-fixed bg-center bg-cover py-16 min-h-screen flex flex-col items-center justify-center text-center p-4">
+        <section className="hero-calculator-section bg-gradient-to-b from-black to-neutral-900 bg-fixed bg-center bg-cover py-16 min-h-screen flex flex-col items-center justify-center text-center p-4" 
+                 style={{ backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.85)), url("/samuroad-hero.png")' }}>
           <div className="max-w-3xl mx-auto w-full">
-            <div className="mb-6">
-              <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">Samuroad</h1>
+            <div className="mb-6 flex flex-col items-center">
+              <img src="/samuroad-logo.png" alt="Samuroad Logo" className="h-24 mb-3" />
+              <h1 className="text-4xl sm:text-5xl font-title text-white mb-4">SAMUROAD</h1>
               <div className="h-1 w-24 bg-primary mx-auto mb-6"></div>
             </div>
             
             <div className="mb-10">
-              <h2 className="text-2xl sm:text-3xl font-semibold text-white mb-4">
+              <h2 className="text-2xl sm:text-3xl font-title text-white mb-4">
                 Trasforma il Tuo Fisico, Raggiungi il Tuo Benessere.
               </h2>
-              <p className="text-gray-300 max-w-xl mx-auto">
+              <p className="text-gray-300 max-w-xl mx-auto font-body">
                 Scopri non solo il tuo peso ideale personalizzato in base ai tuoi obiettivi unici,
                 ma anche una stima realistica del tempo necessario per arrivarci.
                 Inizia oggi il tuo percorso verso una versione più sana e consapevole di te!
@@ -396,7 +398,7 @@ const Calculator = () => {
             </div>
             
             <div className="calculator-wrapper bg-card border border-neutral-800 rounded-xl shadow-2xl shadow-primary/10">
-              <h3 className="text-2xl font-bold text-primary text-center mb-8 pt-6">Calcola Ora</h3>
+              <h3 className="text-3xl font-title text-primary text-center mb-8 pt-6">Calcola Ora</h3>
               
               <div className="calculator-content">
                 {!results ? (
@@ -413,7 +415,7 @@ const Calculator = () => {
         </section>
       </main>
       
-      <footer className="bg-black py-6 text-center text-gray-500 text-sm">
+      <footer className="bg-black py-6 text-center text-gray-500 text-sm font-body">
         <p>&copy; {new Date().getFullYear()} Samuroad. Tutti i diritti riservati.</p>
       </footer>
     </div>
