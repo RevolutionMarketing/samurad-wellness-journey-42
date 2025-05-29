@@ -1,51 +1,26 @@
 
-import { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
-import { CalculationResults, UserData } from './Calculator';
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import CountrySelect from '@/components/CountrySelect';
+import { CalculationResults, UserData } from '@/components/Calculator';
 
-interface WhatsAppOptinPopupProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmitSuccess: (leadName: string) => void;
-  calculatedData: CalculationResults & { userInputs: UserData };
-}
+const LeadCapture = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const calculatedData = location.state as CalculationResults & { userInputs: UserData };
 
-const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }: WhatsAppOptinPopupProps) => {
   const [leadName, setLeadName] = useState('');
-  const [leadPhone, setLeadPhone] = useState('');
+  const [dialCode, setDialCode] = useState('+39');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [consentChecked, setConsentChecked] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const phoneInputRef = useRef<HTMLInputElement>(null);
-  const phoneInstanceRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (isOpen && phoneInputRef.current && !phoneInstanceRef.current) {
-      // Dinamically import and initialize intl-tel-input
-      import('intl-tel-input').then((module) => {
-        const intlTelInput = module.default;
-        phoneInstanceRef.current = intlTelInput(phoneInputRef.current!, {
-          initialCountry: "auto",
-          geoIpLookup: function(callback: (countryCode: string) => void) {
-            fetch("https://ipapi.co/json")
-              .then(res => res.json())
-              .then(data => callback(data.country_code || "it"))
-              .catch(() => callback("it"));
-          },
-          separateDialCode: true
-        });
-      }).catch(error => {
-        console.warn('Could not load intl-tel-input:', error);
-      });
-    }
-
-    return () => {
-      if (phoneInstanceRef.current) {
-        phoneInstanceRef.current.destroy();
-        phoneInstanceRef.current = null;
-      }
-    };
-  }, [isOpen]);
+  if (!calculatedData) {
+    navigate('/');
+    return null;
+  }
 
   const clearErrors = () => {
     setErrors({});
@@ -58,12 +33,10 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
       newErrors.leadName = "Inserisci il tuo nome.";
     }
 
-    if (phoneInstanceRef.current && phoneInstanceRef.current.isValidNumber) {
-      if (!phoneInstanceRef.current.isValidNumber()) {
-        newErrors.leadPhone = "Numero di telefono non valido. Includi il prefisso internazionale.";
-      }
-    } else if (!leadPhone.trim()) {
-      newErrors.leadPhone = "Inserisci il tuo numero WhatsApp.";
+    if (!phoneNumber.trim()) {
+      newErrors.phoneNumber = "Inserisci il tuo numero WhatsApp.";
+    } else if (phoneNumber.length < 6) {
+      newErrors.phoneNumber = "Il numero di telefono è troppo corto.";
     }
 
     if (!consentChecked) {
@@ -85,10 +58,10 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
 
     let message = `Ciao ${name}! 👋\n\nGrazie per aver usato il calcolatore Samuroad! Ecco la tua analisi personalizzata:\n\n`;
     message += `IL TUO PROFILO BASE:\n--------------------\n`;
-    message += `👤 Età: ${Number(calculatedData.userInputs.age)} anni\n`;
+    message += `👤 Età: ${calculatedData.userInputs.age} anni\n`;
     message += `🚻 Sesso: ${calculatedData.userInputs.gender === 'male' ? 'Maschio' : 'Femmina'}\n`;
-    message += `📏 Altezza: ${Number(calculatedData.userInputs.heightCm)} cm\n`;
-    message += `⚖️ Peso Attuale: ${Number(calculatedData.userInputs.currentWeightKg)} kg\n`;
+    message += `📏 Altezza: ${calculatedData.userInputs.heightCm} cm\n`;
+    message += `⚖️ Peso Attuale: ${calculatedData.userInputs.currentWeightKg} kg\n`;
     message += `🎯 Obiettivo: ${getGoalText(calculatedData.userInputs.physicalGoal)}\n`;
     message += `💪 Massa Muscolare: ${getMuscleMassText(calculatedData.userInputs.muscleMass)}\n\n`;
 
@@ -145,11 +118,7 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
     setIsSubmitting(true);
 
     try {
-      let finalPhoneNumber = leadPhone;
-      if (phoneInstanceRef.current && phoneInstanceRef.current.getNumber) {
-        finalPhoneNumber = phoneInstanceRef.current.getNumber();
-      }
-
+      const finalPhoneNumber = dialCode + phoneNumber;
       const whatsappMessage = generateWhatsAppMessage(leadName);
 
       const dataToSend = {
@@ -170,13 +139,12 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
         whatsapp_message_ready: whatsappMessage
       };
 
-      // TODO: Replace with your actual API endpoint
       console.log('Data to send to backend:', dataToSend);
       
       // Simulated API call - replace with real endpoint
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      onSubmitSuccess(leadName);
+      navigate('/confirmation', { state: { leadName } });
     } catch (error) {
       console.error('Error submitting lead:', error);
       setErrors({ submit: 'Errore nell\'invio. Riprova o contattaci.' });
@@ -185,28 +153,33 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-secondary rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-6">
-            <h2 className="text-xl font-title text-primary">📊 I Tuoi Dati Personalizzati Sono Pronti! 📊</h2>
-            <button 
-              onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <X className="h-6 w-6" />
-            </button>
+    <div className="min-h-screen bg-gradient-to-b from-black to-neutral-900 flex flex-col">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center text-gray-300 hover:text-white mb-6 transition-colors"
+        >
+          <ArrowLeft className="mr-2 h-5 w-5" />
+          Torna al Calcolatore
+        </button>
+
+        <div className="bg-card border border-neutral-800 rounded-xl p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-title text-primary mb-4">
+              📊 I Tuoi Dati Personalizzati Sono Pronti! 📊
+            </h1>
+            <p className="text-gray-300 font-body">
+              Abbiamo calcolato le informazioni chiave per aiutarti a comprendere meglio il tuo corpo e i tuoi obiettivi.
+            </p>
           </div>
 
-          <div className="space-y-4 mb-6 text-gray-300 font-body">
-            <p>Abbiamo calcolato le informazioni chiave per aiutarti a comprendere meglio il tuo corpo e i tuoi obiettivi.</p>
+          <div className="bg-gray-800/50 rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-title text-white mb-4">
+              Per ricevere GRATUITAMENTE via WhatsApp la tua analisi numerica dettagliata:
+            </h2>
             
-            <p><strong>Per ricevere GRATUITAMENTE via WhatsApp la tua analisi numerica dettagliata, che include:</strong></p>
-            
-            <ul className="list-disc pl-6 space-y-2 text-sm">
+            <ul className="list-disc pl-6 space-y-2 text-sm text-gray-300">
               <li>Il tuo <strong>Indice di Massa Corporea (BMI)</strong> e la tua attuale categoria di peso</li>
               <li>Il tuo <strong>range di peso salutare</strong> di riferimento</li>
               <li>La stima del tuo <strong>metabolismo basale (BMR)</strong> e delle <strong>calorie di mantenimento</strong> giornaliere</li>
@@ -214,13 +187,11 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
               <li>Una <strong>stima realistica dei tempi</strong> necessari per raggiungere il peso target calcolato</li>
               <li>Una <strong>nota interpretativa</strong> dei tuoi dati</li>
             </ul>
-
-            <p><strong>Inserisci il tuo nome e il numero di telefono che usi con WhatsApp:</strong></p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="leadName" className="block text-gray-300 mb-2 text-sm">
+              <label htmlFor="leadName" className="block text-white mb-3 font-medium">
                 Il Tuo Nome:
               </label>
               <input
@@ -229,29 +200,33 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
                 value={leadName}
                 onChange={(e) => setLeadName(e.target.value)}
                 placeholder="Mario Rossi"
-                className={`w-full rounded-md bg-gray-800 border ${errors.leadName ? 'border-red-500' : 'border-gray-600'} p-3 text-white`}
+                className={`w-full rounded-lg bg-gray-800 border ${errors.leadName ? 'border-red-500' : 'border-gray-600'} p-4 text-white placeholder:text-gray-400 focus:border-primary focus:outline-none transition-colors`}
               />
-              {errors.leadName && <p className="text-red-500 text-xs mt-2">{errors.leadName}</p>}
+              {errors.leadName && <p className="text-red-500 text-sm mt-2">{errors.leadName}</p>}
             </div>
 
             <div>
-              <label htmlFor="leadPhone" className="block text-gray-300 mb-2 text-sm">
+              <label className="block text-white mb-3 font-medium">
                 Numero WhatsApp:
               </label>
-              <input
-                type="tel"
-                id="leadPhone"
-                ref={phoneInputRef}
-                value={leadPhone}
-                onChange={(e) => setLeadPhone(e.target.value)}
-                className={`w-full rounded-md bg-gray-800 border ${errors.leadPhone ? 'border-red-500' : 'border-gray-600'} p-3 text-white`}
-              />
-              {errors.leadPhone && <p className="text-red-500 text-xs mt-2">{errors.leadPhone}</p>}
+              <div className="space-y-3">
+                <CountrySelect value={dialCode} onValueChange={setDialCode} />
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456789"
+                  className={`w-full rounded-lg bg-gray-800 border ${errors.phoneNumber ? 'border-red-500' : 'border-gray-600'} p-4 text-white placeholder:text-gray-400 focus:border-primary focus:outline-none transition-colors`}
+                />
+              </div>
+              {errors.phoneNumber && <p className="text-red-500 text-sm mt-2">{errors.phoneNumber}</p>}
             </div>
 
-            <p className="text-amber-400 text-sm">
-              ⚠️ <strong>Importante:</strong> Inserisci il numero WhatsApp corretto, completo di prefisso internazionale. È l'unico modo per inviarti i tuoi calcoli!
-            </p>
+            <div className="bg-amber-900/20 border border-amber-600/30 rounded-lg p-4">
+              <p className="text-amber-400 text-sm">
+                ⚠️ <strong>Importante:</strong> Inserisci il numero WhatsApp corretto. È l'unico modo per inviarti i tuoi calcoli!
+              </p>
+            </div>
 
             <div className="flex items-start space-x-3">
               <input
@@ -259,25 +234,29 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
                 id="consentCheckbox"
                 checked={consentChecked}
                 onChange={(e) => setConsentChecked(e.target.checked)}
-                className="mt-1"
+                className="mt-1.5 h-4 w-4 text-primary bg-gray-800 border-gray-600 rounded focus:ring-primary"
               />
-              <label htmlFor="consentCheckbox" className="text-xs text-gray-300">
-                Dichiaro di aver letto l'<a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="text-primary underline">Informativa sulla Privacy</a> e acconsento al trattamento dei miei dati per ricevere l'analisi numerica personalizzata via WhatsApp e per eventuali comunicazioni da Samuroad relative a approfondimenti o servizi.
+              <label htmlFor="consentCheckbox" className="text-sm text-gray-300 leading-relaxed">
+                Dichiaro di aver letto l'<a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">Informativa sulla Privacy</a> e acconsento al trattamento dei miei dati per ricevere l'analisi numerica personalizzata via WhatsApp e per eventuali comunicazioni da Samuroad relative a approfondimenti o servizi.
               </label>
             </div>
-            {errors.consent && <p className="text-red-500 text-xs">{errors.consent}</p>}
+            {errors.consent && <p className="text-red-500 text-sm">{errors.consent}</p>}
 
-            {errors.submit && <p className="text-red-500 text-sm">{errors.submit}</p>}
+            {errors.submit && (
+              <div className="bg-red-900/20 border border-red-600/30 rounded-lg p-4">
+                <p className="text-red-400 text-sm">{errors.submit}</p>
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-semibold py-4 rounded-md transition-colors"
+              className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-lg transition-colors text-lg"
             >
               {isSubmitting ? 'Invio in corso...' : 'Sì, Voglio i Miei Dati Dettagliati su WhatsApp!'}
             </button>
 
-            <p className="text-center text-xs text-gray-400">
+            <p className="text-center text-sm text-gray-400">
               Massima riservatezza e nessun invio indesiderato.
             </p>
           </form>
@@ -287,4 +266,4 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
   );
 };
 
-export default WhatsAppOptinPopup;
+export default LeadCapture;

@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import CalculatorForm from "./CalculatorForm";
-import WhatsAppOptinPopup from "./WhatsAppOptinPopup";
 import ConfirmationScreen from "./ConfirmationScreen";
 import { calculateBMI, calculateBMR, getWeightCategory } from "../utils/calculations";
 
@@ -25,11 +25,11 @@ export type CalculationResults = {
   targetWeight: number;
 };
 
-type AppState = 'form' | 'optin' | 'confirmation';
+type AppState = 'form' | 'confirmation';
 
 const Calculator = () => {
+  const navigate = useNavigate();
   const [appState, setAppState] = useState<AppState>('form');
-  const [calculatedResults, setCalculatedResults] = useState<CalculationResults & { userInputs: UserData } | null>(null);
   const [leadName, setLeadName] = useState('');
 
   const calculateResults = (data: UserData) => {
@@ -258,8 +258,8 @@ const Calculator = () => {
       userInputs: data
     };
 
-    setCalculatedResults(results);
-    setAppState('optin');
+    // Navigate to lead capture page with results
+    navigate('/lead-capture', { state: results });
   };
 
   const calculateWeightLossTime = (
@@ -377,12 +377,7 @@ const Calculator = () => {
 
   const handleNewCalculation = () => {
     setAppState('form');
-    setCalculatedResults(null);
     setLeadName('');
-  };
-
-  const handleCloseOptin = () => {
-    setAppState('form');
   };
 
   return (
@@ -430,15 +425,6 @@ const Calculator = () => {
       <footer className="bg-black py-6 text-center text-gray-500 text-sm font-body">
         <p>&copy; {new Date().getFullYear()} Samuroad. Tutti i diritti riservati.</p>
       </footer>
-
-      {appState === 'optin' && calculatedResults && (
-        <WhatsAppOptinPopup
-          isOpen={true}
-          onClose={handleCloseOptin}
-          onSubmitSuccess={handleOptinSuccess}
-          calculatedData={calculatedResults}
-        />
-      )}
     </div>
   );
 };
