@@ -1,6 +1,7 @@
 import { useState } from "react";
 import CalculatorForm from "./CalculatorForm";
-import ResultsDisplay from "./ResultsDisplay";
+import WhatsAppOptinPopup from "./WhatsAppOptinPopup";
+import ConfirmationScreen from "./ConfirmationScreen";
 import { calculateBMI, calculateBMR, getWeightCategory } from "../utils/calculations";
 
 export type UserData = {
@@ -24,13 +25,16 @@ export type CalculationResults = {
   targetWeight: number;
 };
 
+type AppState = 'form' | 'optin' | 'confirmation';
+
 const Calculator = () => {
-  const [results, setResults] = useState<CalculationResults | null>(null);
+  const [appState, setAppState] = useState<AppState>('form');
+  const [calculatedResults, setCalculatedResults] = useState<CalculationResults & { userInputs: UserData } | null>(null);
+  const [leadName, setLeadName] = useState('');
 
   const calculateResults = (data: UserData) => {
     const { age, gender, heightCm, currentWeightKg, activityLevelMultiplier, physicalGoal, muscleMass } = data;
     
-    // Basic calculations
     const heightM = heightCm / 100;
     const bmi = calculateBMI(currentWeightKg, heightM);
     const weightCategory = getWeightCategory(bmi);
@@ -43,25 +47,22 @@ const Calculator = () => {
     const bmr = calculateBMR(currentWeightKg, heightCm, age, gender);
     const maintenanceCalories = Math.round(bmr * activityLevelMultiplier);
 
-    // Determine target weight and interpretive message based on muscle mass
     let targetWeight = currentWeightKg;
     let interpretiveNote = "";
     let timeCalculationApplicable = true;
     let recompTimeNote = "";
     
-    // Define BMI target for "leaner" based on muscle mass
-    let targetBmiForLeanerGoal;
-    switch (muscleMass) {
-      case 'very_muscular':       targetBmiForLeanerGoal = 24.5; break; // Higher to preserve muscles
-      case 'muscular':            targetBmiForLeanerGoal = 23.5; break;
-      case 'normal':              targetBmiForLeanerGoal = 21.8; break; // Center of BMI range
-      case 'less_muscular':       targetBmiForLeanerGoal = 20.5; break;
-      case 'minimally_muscular':  targetBmiForLeanerGoal = 19.5; break;
-      default:                    targetBmiForLeanerGoal = 21.8; // Fallback
-    }
-    targetBmiForLeanerGoal = Math.max(18.5, Math.min(targetBmiForLeanerGoal, 24.9)); // Ensure within healthy range
-    const leanerTargetWeightBasedOnMuscle = parseFloat((targetBmiForLeanerGoal * heightM * heightM).toFixed(1));
-    
+    const targetBmiForLeanerGoal = (muscleMass: string): number => {
+      switch (muscleMass) {
+        case 'very_muscular': return 24.5;
+        case 'muscular': return 23.5;
+        case 'normal': return 21.8;
+        case 'less_muscular': return 20.5;
+        case 'minimally_muscular': return 19.5;
+        default: return 21.8;
+      }
+    };
+
     const formatMuscleMass = (value: string): string => {
       const map: Record<string, string> = {
         "minimally_muscular": "Minimamente Muscoloso",
@@ -72,9 +73,11 @@ const Calculator = () => {
       };
       return map[value] || "Non specificata";
     };
+
+    const leanerTargetBmi = Math.max(18.5, Math.min(targetBmiForLeanerGoal(muscleMass), 24.9));
+    const leanerTargetWeightBasedOnMuscle = parseFloat((leanerTargetBmi * heightM * heightM).toFixed(1));
     
     if (bmi > 24.9) {
-      // OVERWEIGHT/OBESE
       const muscleMassText = formatMuscleMass(muscleMass);
       interpretiveNote = `Attualmente il tuo BMI (${bmi.toFixed(1)}) indica ${weightCategory.split('(')[0].trim()}. Il tuo range di peso salutare è ${healthyWeightRange} kg. Considerata la tua massa muscolare percepita ('${muscleMassText}')... `;
       
@@ -107,13 +110,12 @@ const Calculator = () => {
             healthyWeightUpperBound;
           interpretiveNote += `per 'Diventare più Robusto', essendo in sovrappeso, è consigliabile prima ottimizzare la composizione corporea. Un obiettivo di peso iniziale potrebbe essere ${targetWeight.toFixed(1)} kg. L'aumento di forza e massa muscolare richiederà poi allenamento e dieta mirati.`;
           break;
-        default: // 'other'
+        default:
           targetWeight = healthyWeightUpperBound;
           interpretiveNote += `per il tuo obiettivo 'Altro', un primo passo è rientrare nel range salutare, mirando a ${targetWeight.toFixed(1)} kg.`;
           break;
       }
     } else if (bmi < 18.5) {
-      // UNDERWEIGHT
       interpretiveNote = `Attualmente il tuo BMI (${bmi.toFixed(1)}) indica SOTTOPESO. Il tuo range di peso salutare è ${healthyWeightRange} kg. `;
       
       targetWeight = healthyWeightLowerBound;
@@ -131,7 +133,6 @@ const Calculator = () => {
           break;
       }
     } else {
-      // NORMAL WEIGHT
       const muscleMassText = formatMuscleMass(muscleMass);
       interpretiveNote = `Complimenti! Il tuo BMI (${bmi.toFixed(1)}) è NORMOPESO (range: ${healthyWeightRange} kg). Considerata la tua massa muscolare percepita ('${muscleMassText}')... `;
       
@@ -166,7 +167,7 @@ const Calculator = () => {
             else targetWeight = currentWeightKg;
           }
           break;
-        default: // 'other'
+        default:
           interpretiveNote += "per il tuo obiettivo specifico, essendo già normopeso, ti consigliamo di consultare un professionista per un piano dettagliato.";
           break;
       }
@@ -176,12 +177,10 @@ const Calculator = () => {
       interpretiveNote += recompTimeNote;
     }
 
-    // Calculate time to goal
     let timeToGoal = "Non pertinente per l'obiettivo e la situazione attuale.";
     const weightToChange = currentWeightKg - targetWeight;
     
     if (weightToChange > 0.1 && timeCalculationApplicable) {
-      // WEIGHT LOSS (at least 100g)
       const totalWeeksEstimated = calculateWeightLossTime(currentWeightKg, targetWeight, age, gender, activityLevelMultiplier, muscleMass);
       
       if (totalWeeksEstimated > 0.1) {
@@ -202,9 +201,8 @@ const Calculator = () => {
         timeToGoal = `L'obiettivo di peso (${targetWeight.toFixed(1)} kg) è praticamente raggiunto.`;
       }
     } else if (weightToChange < -0.1) {
-      // WEIGHT GAIN (at least 100g)
       const weightToGainAbs = Math.abs(weightToChange);
-      let weeklyGainRate = 0.25; // Base for gain
+      let weeklyGainRate = 0.25;
       
       if (gender === 'male') weeklyGainRate += 0.05;
       if (age < 30 && (physicalGoal === 'stronger' || muscleMass === 'very_muscular' || muscleMass === 'muscular')) weeklyGainRate += 0.1;
@@ -232,7 +230,6 @@ const Calculator = () => {
       }
     }
 
-    // Calculate weight difference text
     let weightDifference = "Nessun cambiamento di peso significativo calcolato per l'obiettivo.";
     if (Math.abs(currentWeightKg - targetWeight) > 0.1) {
       const diffVal = Math.abs(currentWeightKg - targetWeight).toFixed(1);
@@ -249,7 +246,7 @@ const Calculator = () => {
       }
     }
 
-    setResults({
+    const results = {
       bmi,
       weightCategory,
       healthyWeightRange,
@@ -257,11 +254,14 @@ const Calculator = () => {
       maintenanceCalories,
       timeToGoal,
       interpretiveNote,
-      targetWeight
-    });
+      targetWeight,
+      userInputs: data
+    };
+
+    setCalculatedResults(results);
+    setAppState('optin');
   };
 
-  // Helper function to estimate weight loss time with a curved approach and muscle mass
   const calculateWeightLossTime = (
     initialWeight: number, 
     targetWeight: number, 
@@ -297,7 +297,6 @@ const Calculator = () => {
       weeklyRate = Math.max(0.20, Math.min(weeklyRate, 0.95));
       totalWeeks = remainingWeightToLose / weeklyRate;
     } else {
-      // Phase 1: First Month (4 weeks)
       let weeklyRatePhase1 = 0.70;
       
       if (weightToLoseTotal >= 20) weeklyRatePhase1 += 0.25;
@@ -324,7 +323,6 @@ const Calculator = () => {
       totalWeeks += 4;
       
       if (remainingWeightToLose > 0.05) {
-        // Phase 2: Sustainable Loss
         let weightToLoseInPhase2 = Math.max(0, remainingWeightToLose - ((weightToLoseTotal > 15) ? 4 : 3));
         
         if (weightToLoseInPhase2 > 0.05) {
@@ -351,7 +349,6 @@ const Calculator = () => {
         }
         
         if (remainingWeightToLose > 0.05) {
-          // Phase 3: Last kg
           let weeklyRatePhase3 = 0.30;
           
           if (gender === 'male') weeklyRatePhase3 += 0.05;
@@ -371,6 +368,21 @@ const Calculator = () => {
     }
     
     return totalWeeks;
+  };
+
+  const handleOptinSuccess = (name: string) => {
+    setLeadName(name);
+    setAppState('confirmation');
+  };
+
+  const handleNewCalculation = () => {
+    setAppState('form');
+    setCalculatedResults(null);
+    setLeadName('');
+  };
+
+  const handleCloseOptin = () => {
+    setAppState('form');
   };
 
   return (
@@ -399,12 +411,14 @@ const Calculator = () => {
               <h3 className="text-3xl font-title text-primary text-center mb-8 pt-6">Calcola Ora</h3>
               
               <div className="calculator-content">
-                {!results ? (
+                {appState === 'form' && (
                   <CalculatorForm onCalculate={calculateResults} />
-                ) : (
-                  <ResultsDisplay 
-                    results={results} 
-                    onReset={() => setResults(null)}
+                )}
+                
+                {appState === 'confirmation' && (
+                  <ConfirmationScreen 
+                    leadName={leadName}
+                    onNewCalculation={handleNewCalculation}
                   />
                 )}
               </div>
@@ -416,6 +430,15 @@ const Calculator = () => {
       <footer className="bg-black py-6 text-center text-gray-500 text-sm font-body">
         <p>&copy; {new Date().getFullYear()} Samuroad. Tutti i diritti riservati.</p>
       </footer>
+
+      {appState === 'optin' && calculatedResults && (
+        <WhatsAppOptinPopup
+          isOpen={true}
+          onClose={handleCloseOptin}
+          onSubmitSuccess={handleOptinSuccess}
+          calculatedData={calculatedResults}
+        />
+      )}
     </div>
   );
 };

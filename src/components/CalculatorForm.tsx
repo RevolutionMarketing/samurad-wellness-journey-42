@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { UserData } from './Calculator';
 
@@ -226,7 +225,7 @@ const CalculatorForm = ({ onCalculate }: CalculatorFormProps) => {
           type="submit" 
           className="w-full bg-primary hover:bg-primary/90 active:translate-y-0.5 transform transition text-white font-semibold uppercase tracking-wider py-4 rounded-md shadow-lg"
         >
-          Scopri il Tuo Percorso
+          Scopri i Tuoi Dati Chiave!
         </button>
       </div>
     </form>
