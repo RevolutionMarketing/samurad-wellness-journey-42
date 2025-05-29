@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { CalculationResults, UserData } from './Calculator';
@@ -74,9 +75,9 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
   };
 
   const generateWhatsAppMessage = (name: string) => {
-    const targetWeight = parseFloat(calculatedData.targetWeight).toFixed(1);
+    const targetWeight = parseFloat(calculatedData.targetWeight.toString()).toFixed(1);
     const currentWeight = Number(calculatedData.userInputs.currentWeightKg);
-    const targetWeightNum = parseFloat(calculatedData.targetWeight);
+    const targetWeightNum = parseFloat(calculatedData.targetWeight.toString());
     const weightDiff = Math.abs(currentWeight - targetWeightNum);
     const weightDiffText = weightDiff > 0.1 
       ? `${weightDiff.toFixed(1)} kg da ${currentWeight > targetWeightNum ? 'perdere' : 'guadagnare'}`
