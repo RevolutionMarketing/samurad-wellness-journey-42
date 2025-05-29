@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { CalculationResults, UserData } from './Calculator';
@@ -32,8 +31,7 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
               .then(data => callback(data.country_code || "it"))
               .catch(() => callback("it"));
           },
-          separateDialCode: true,
-          utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/19.2.16/js/utils.js"
+          separateDialCode: true
         });
       }).catch(error => {
         console.warn('Could not load intl-tel-input:', error);
@@ -77,17 +75,19 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
 
   const generateWhatsAppMessage = (name: string) => {
     const targetWeight = parseFloat(calculatedData.targetWeight).toFixed(1);
-    const weightDiff = Math.abs(parseFloat(calculatedData.userInputs.currentWeightKg.toString()) - parseFloat(calculatedData.targetWeight));
+    const currentWeight = Number(calculatedData.userInputs.currentWeightKg);
+    const targetWeightNum = parseFloat(calculatedData.targetWeight);
+    const weightDiff = Math.abs(currentWeight - targetWeightNum);
     const weightDiffText = weightDiff > 0.1 
-      ? `${weightDiff.toFixed(1)} kg da ${parseFloat(calculatedData.userInputs.currentWeightKg.toString()) > parseFloat(calculatedData.targetWeight) ? 'perdere' : 'guadagnare'}`
+      ? `${weightDiff.toFixed(1)} kg da ${currentWeight > targetWeightNum ? 'perdere' : 'guadagnare'}`
       : "Peso attuale idoneo per l'obiettivo";
 
     let message = `Ciao ${name}! 👋\n\nGrazie per aver usato il calcolatore Samuroad! Ecco la tua analisi personalizzata:\n\n`;
     message += `IL TUO PROFILO BASE:\n--------------------\n`;
-    message += `👤 Età: ${calculatedData.userInputs.age.toString()} anni\n`;
+    message += `👤 Età: ${Number(calculatedData.userInputs.age)} anni\n`;
     message += `🚻 Sesso: ${calculatedData.userInputs.gender === 'male' ? 'Maschio' : 'Femmina'}\n`;
-    message += `📏 Altezza: ${calculatedData.userInputs.heightCm.toString()} cm\n`;
-    message += `⚖️ Peso Attuale: ${calculatedData.userInputs.currentWeightKg.toString()} kg\n`;
+    message += `📏 Altezza: ${Number(calculatedData.userInputs.heightCm)} cm\n`;
+    message += `⚖️ Peso Attuale: ${Number(calculatedData.userInputs.currentWeightKg)} kg\n`;
     message += `🎯 Obiettivo: ${getGoalText(calculatedData.userInputs.physicalGoal)}\n`;
     message += `💪 Massa Muscolare: ${getMuscleMassText(calculatedData.userInputs.muscleMass)}\n\n`;
 
