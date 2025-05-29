@@ -32,7 +32,6 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
               .then(data => callback(data.country_code || "it"))
               .catch(() => callback("it"));
           },
-          preferredCountries: ['it', 'ch', 'de', 'fr', 'es', 'gb', 'us'],
           separateDialCode: true,
           utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/19.2.16/js/utils.js"
         });
@@ -78,17 +77,17 @@ const WhatsAppOptinPopup = ({ isOpen, onClose, onSubmitSuccess, calculatedData }
 
   const generateWhatsAppMessage = (name: string) => {
     const targetWeight = parseFloat(calculatedData.targetWeight).toFixed(1);
-    const weightDiff = Math.abs(calculatedData.userInputs.currentWeightKg - parseFloat(calculatedData.targetWeight));
+    const weightDiff = Math.abs(parseFloat(calculatedData.userInputs.currentWeightKg.toString()) - parseFloat(calculatedData.targetWeight));
     const weightDiffText = weightDiff > 0.1 
-      ? `${weightDiff.toFixed(1)} kg da ${calculatedData.userInputs.currentWeightKg > parseFloat(calculatedData.targetWeight) ? 'perdere' : 'guadagnare'}`
+      ? `${weightDiff.toFixed(1)} kg da ${parseFloat(calculatedData.userInputs.currentWeightKg.toString()) > parseFloat(calculatedData.targetWeight) ? 'perdere' : 'guadagnare'}`
       : "Peso attuale idoneo per l'obiettivo";
 
     let message = `Ciao ${name}! 👋\n\nGrazie per aver usato il calcolatore Samuroad! Ecco la tua analisi personalizzata:\n\n`;
     message += `IL TUO PROFILO BASE:\n--------------------\n`;
-    message += `👤 Età: ${calculatedData.userInputs.age} anni\n`;
+    message += `👤 Età: ${calculatedData.userInputs.age.toString()} anni\n`;
     message += `🚻 Sesso: ${calculatedData.userInputs.gender === 'male' ? 'Maschio' : 'Femmina'}\n`;
-    message += `📏 Altezza: ${calculatedData.userInputs.heightCm} cm\n`;
-    message += `⚖️ Peso Attuale: ${calculatedData.userInputs.currentWeightKg} kg\n`;
+    message += `📏 Altezza: ${calculatedData.userInputs.heightCm.toString()} cm\n`;
+    message += `⚖️ Peso Attuale: ${calculatedData.userInputs.currentWeightKg.toString()} kg\n`;
     message += `🎯 Obiettivo: ${getGoalText(calculatedData.userInputs.physicalGoal)}\n`;
     message += `💪 Massa Muscolare: ${getMuscleMassText(calculatedData.userInputs.muscleMass)}\n\n`;
 
