@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -35,8 +34,8 @@ const LeadCapture = () => {
 
     if (!phoneNumber.trim()) {
       newErrors.phoneNumber = "Inserisci il tuo numero WhatsApp.";
-    } else if (phoneNumber.length < 6) {
-      newErrors.phoneNumber = "Il numero di telefono è troppo corto.";
+    } else if (!/^\d{6,}$/.test(phoneNumber)) {
+      newErrors.phoneNumber = "Il numero di telefono non è valido.";
     }
 
     if (!consentChecked) {
@@ -45,6 +44,28 @@ const LeadCapture = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const getGoalText = (goal: string) => {
+    const goals = {
+      maintain: "Mantenere peso attuale",
+      leaner: "Diventare più snello",
+      stronger: "Aumentare massa muscolare",
+      healthyWeight: "Raggiungere peso salutare",
+      other: "Altro"
+    };
+    return goals[goal as keyof typeof goals] || goal;
+  };
+
+  const getMuscleMassText = (mass: string) => {
+    const masses = {
+      minimally_muscular: "Minimamente muscoloso",
+      less_muscular: "Poco muscoloso", 
+      normal: "Normale",
+      muscular: "Muscoloso",
+      very_muscular: "Molto muscoloso"
+    };
+    return masses[mass as keyof typeof masses] || mass;
   };
 
   const generateWhatsAppMessage = (name: string) => {
@@ -83,55 +104,26 @@ const LeadCapture = () => {
 
     message += `---\nRicorda: queste sono stime basate su calcoli generali. Per un piano personalizzato, consulta un professionista.\n\n`;
     message += `Visita: https://www.samuroad.com\n\nA presto,\nIl Team Samuroad`;
-    
+
     return message;
   };
 
-  const getGoalText = (goal: string) => {
-    const goals = {
-      maintain: "Mantenere peso attuale",
-      leaner: "Diventare più snello",
-      stronger: "Aumentare massa muscolare",
-      healthyWeight: "Raggiungere peso salutare",
-      other: "Altro"
-    };
-    return goals[goal as keyof typeof goals] || goal;
-  };
-
-  const getMuscleMassText = (mass: string) => {
-    const masses = {
-      minimally_muscular: "Minimamente muscoloso",
-      less_muscular: "Poco muscoloso", 
-      normal: "Normale",
-      muscular: "Muscoloso",
-      very_muscular: "Molto muscoloso"
-    };
-    return masses[mass as keyof typeof masses] || mass;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {Add commentMore actions
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearErrors();
 
-  
     if (!validateForm()) return;
 
-  
     setIsSubmitting(true);
 
-  
     try {
       const finalPhoneNumber = dialCode + phoneNumber;
       const whatsappMessage = generateWhatsAppMessage(leadName);
 
-  
-      // Prepara i dati per SheetDB: stringifica gli oggetti annidati
       const dataToSend = {
         lead_name: leadName,
         lead_phone: finalPhoneNumber,
         consent_given: consentChecked,
-        user_inputs: calculatedData.userInputs,
-        calculated_data: {
         user_inputs: JSON.stringify(calculatedData.userInputs),
         calculated_data: JSON.stringify({
           bmi: calculatedData.bmi,
@@ -141,35 +133,26 @@ const LeadCapture = () => {
           weightDifference: calculatedData.weightDifference,
           maintenanceCalories: calculatedData.maintenanceCalories,
           timeToGoal: calculatedData.timeToGoal
-        },
         }),
         interpretive_note: calculatedData.interpretiveNote,
         whatsapp_message_ready: whatsappMessage
       };
 
-      console.log('Data to send to backend:', dataToSend);
-      
-      // Simulated API call - replace with real endpoint
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-  
-      // Chiamata a SheetDB
       await fetch('https://sheetdb.io/api/v1/dknmrv1pdwcyq', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: [dataToSend]
-        }),
+        body: JSON.stringify({ data: [dataToSend] }),
       });
-  
+
       navigate('/confirmation', { state: { leadName } });
     } catch (error) {
       console.error('Error submitting lead:', error);
-      setErrors({ submit: 'Errore nell\'invio. Riprova o contattaci.' });
       setErrors({ submit: "Errore nell'invio. Riprova o contattaci." });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-black to-neutral-900 flex flex-col">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
