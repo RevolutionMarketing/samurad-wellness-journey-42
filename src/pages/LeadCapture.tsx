@@ -109,23 +109,29 @@ const LeadCapture = () => {
     return masses[mass as keyof typeof masses] || mass;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {Add commentMore actions
     e.preventDefault();
     clearErrors();
+
   
     if (!validateForm()) return;
+
   
     setIsSubmitting(true);
+
   
     try {
       const finalPhoneNumber = dialCode + phoneNumber;
       const whatsappMessage = generateWhatsAppMessage(leadName);
+
   
       // Prepara i dati per SheetDB: stringifica gli oggetti annidati
       const dataToSend = {
         lead_name: leadName,
         lead_phone: finalPhoneNumber,
         consent_given: consentChecked,
+        user_inputs: calculatedData.userInputs,
+        calculated_data: {
         user_inputs: JSON.stringify(calculatedData.userInputs),
         calculated_data: JSON.stringify({
           bmi: calculatedData.bmi,
@@ -135,10 +141,17 @@ const LeadCapture = () => {
           weightDifference: calculatedData.weightDifference,
           maintenanceCalories: calculatedData.maintenanceCalories,
           timeToGoal: calculatedData.timeToGoal
+        },
         }),
         interpretive_note: calculatedData.interpretiveNote,
         whatsapp_message_ready: whatsappMessage
       };
+
+      console.log('Data to send to backend:', dataToSend);
+      
+      // Simulated API call - replace with real endpoint
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
   
       // Chiamata a SheetDB
       await fetch('https://sheetdb.io/api/v1/dknmrv1pdwcyq', {
@@ -152,12 +165,11 @@ const LeadCapture = () => {
       navigate('/confirmation', { state: { leadName } });
     } catch (error) {
       console.error('Error submitting lead:', error);
+      setErrors({ submit: 'Errore nell\'invio. Riprova o contattaci.' });
       setErrors({ submit: "Errore nell'invio. Riprova o contattaci." });
     } finally {
       setIsSubmitting(false);
     }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-black to-neutral-900 flex flex-col">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
