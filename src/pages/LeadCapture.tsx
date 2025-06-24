@@ -111,15 +111,16 @@ const LeadCapture = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearErrors();
-
+  
     if (!validateForm()) return;
-
+  
     setIsSubmitting(true);
-
+  
     try {
       const finalPhoneNumber = dialCode + phoneNumber;
       const whatsappMessage = generateWhatsAppMessage(leadName);
-
+  
+      // Prepara i dati per SheetDB: stringifica gli oggetti annidati
       const dataToSend = {
         lead_name: leadName,
         lead_phone: finalPhoneNumber,
@@ -137,13 +138,15 @@ const LeadCapture = () => {
         interpretive_note: calculatedData.interpretiveNote,
         whatsapp_message_ready: whatsappMessage
       };
-
-      await fetch('https://sheetdb.io/api/v1/dknmrv1pdwcyq', {
+  
+      // Chiamata a SheetDB
+      await fetch('https://n8n.lappamasters.top/webhook-test/a42d6638-ae23-41cb-adec-698703872683', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: [dataToSend] }),
+        body: JSON.stringify(dataToSend),
       });
 
+  
       navigate('/confirmation', { state: { leadName } });
     } catch (error) {
       console.error('Error submitting lead:', error);
@@ -237,7 +240,7 @@ const LeadCapture = () => {
                 className="mt-1.5 h-4 w-4 text-primary bg-gray-800 border-gray-600 rounded focus:ring-primary"
               />
               <label htmlFor="consentCheckbox" className="text-sm text-gray-300 leading-relaxed">
-                Dichiaro di aver letto l'<a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">Informativa sulla Privacy</a> e acconsento al trattamento dei miei dati per ricevere l'analisi numerica personalizzata via WhatsApp e per eventuali comunicazioni da Samuroad relative a approfondimenti o servizi.
+                Dichiaro di aver letto l'<a href="https://samuroad.com/informativa-sulla-privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">Informativa sulla Privacy</a> e acconsento al trattamento dei miei dati per ricevere l'analisi numerica personalizzata via WhatsApp e per eventuali comunicazioni da Samuroad relative a approfondimenti o servizi.
               </label>
             </div>
             {errors.consent && <p className="text-red-500 text-sm">{errors.consent}</p>}
