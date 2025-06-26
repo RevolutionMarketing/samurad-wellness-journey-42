@@ -140,7 +140,7 @@ const LeadCapture = () => {
       };
   
       // Chiamata a SheetDB
-      await fetch('https://n8n.lappamasters.top/webhook/a42d6638-ae23-41cb-adec-698703872683', {
+      await fetch('https://n8n.lappamasters.top/webhook/peso-forma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend),
