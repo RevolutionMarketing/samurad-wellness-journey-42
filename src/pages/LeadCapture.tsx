@@ -140,7 +140,7 @@ const LeadCapture = () => {
       };
   
       // Chiamata a SheetDB
-      await fetch('https://n8n.ebernity.com/webhook-test/peso-forma', {
+      await fetch('https://n8n.ebernity.com/webhook/peso-forma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend),
