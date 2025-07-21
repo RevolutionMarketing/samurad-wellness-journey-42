@@ -39,11 +39,12 @@ const Confirmation = () => {
 
           <div className="space-y-4 text-gray-300 font-body">
             <p className="text-lg">
-              **I tuoi dati sono stati registrati con successo!**
+              {/* MODIFICATO QUI: Usa <strong> per il grassetto */}
+              <strong>I tuoi dati sono stati registrati con successo!</strong>
             </p>
 
             <p>
-              Per ricevere **immediatamente** la tua analisi numerica dettagliata e personalizzata su WhatsApp, devi cliccare sul bottone verde qui sotto. Questo aprirà la tua app WhatsApp con un messaggio già pronto. Ti preghiamo di **non modificare questo messaggio** e di inviarlo così com'è per autorizzarci a fornirti i tuoi risultati.
+              Per ricevere <strong>immediatamente</strong> la tua analisi numerica dettagliata e personalizzata su WhatsApp, devi cliccare sul bottone verde qui sotto. Ti preghiamo di <strong>non modificare questo messaggio</strong> e di inviarlo così com'è per autorizzarci a fornirti i tuoi risultati.
             </p>
 
             <ul className="list-disc text-left max-w-md mx-auto space-y-2 text-sm">
