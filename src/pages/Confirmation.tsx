@@ -1,11 +1,22 @@
-
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, ArrowLeft } from 'lucide-react';
+import { MessageSquareText } from 'lucide-react'; // Importa l'icona di WhatsApp da Lucide React
 
 const Confirmation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const leadName = location.state?.leadName || 'utente';
+
+  // IL TUO NUMERO WHATSAPP A CUI GLI UTENTI INVIERANNO IL MESSAGGIO.
+  // Formato internazionale: +[prefisso][numero], senza spazi o trattini.
+  const yourWhatsAppNumber = "+14158329132"; // Il numero americano per il test
+
+  // Messaggio precompilato che l'utente invierà cliccando sul bottone WhatsApp.
+  // È fondamentale usare encodeURIComponent() per formattare correttamente gli spazi e i caratteri speciali nell'URL.
+  const predefinedMessage = encodeURIComponent("Ciao Samuroad, aspetto i risultati. Grazie."); // Messaggio leggermente più corto e diretto
+
+  // Costruisce il link WhatsApp: aprirà la chat con il tuo numero e il messaggio precompilato.
+  const whatsappLink = `https://wa.me/${yourWhatsAppNumber}?text=${predefinedMessage}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black to-neutral-900 flex flex-col">
@@ -28,13 +39,13 @@ const Confirmation = () => {
 
           <div className="space-y-4 text-gray-300 font-body">
             <p className="text-lg">
-              <strong>I tuoi dati sono stati registrati con successo!</strong>
+              **I tuoi dati sono stati registrati con successo!**
             </p>
-            
+
             <p>
-              Riceverai a breve su WhatsApp la tua analisi numerica dettagliata e personalizzata con:
+              Per ricevere **immediatamente** la tua analisi numerica dettagliata e personalizzata su WhatsApp, devi cliccare sul bottone verde qui sotto. Questo aprirà la tua app WhatsApp con un messaggio già pronto. Ti preghiamo di **non modificare questo messaggio** e di inviarlo così com'è per autorizzarci a fornirti i tuoi risultati.
             </p>
-            
+
             <ul className="list-disc text-left max-w-md mx-auto space-y-2 text-sm">
               <li>Il tuo BMI e categoria di peso attuale</li>
               <li>Il range di peso salutare per te</li>
@@ -44,14 +55,22 @@ const Confirmation = () => {
               <li>Una nota interpretativa personalizzata</li>
             </ul>
 
-            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 mt-6">
-              <p className="text-primary font-medium">
-                📱 Controlla WhatsApp nei prossimi minuti!
-              </p>
+            {/* Bottone WhatsApp con Messaggio Precompilato */}
+            <div className="mt-8">
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 text-xl"
+                aria-label="Richiedi risultati su WhatsApp"
+              >
+                <MessageSquareText className="mr-3 h-7 w-7" /> {/* Icona di WhatsApp */}
+                Clicca qui per avere subito i risultati!
+              </a>
             </div>
 
             <p className="text-sm text-gray-400 mt-6">
-              Se non ricevi il messaggio entro 5 minuti, controlla la cartella spam o contattaci direttamente.
+              Assicurati di aver inserito un numero WhatsApp corretto nel modulo precedente per ricevere i tuoi calcoli. Ti risponderemo non appena riceveremo il tuo messaggio.
             </p>
           </div>
 
@@ -62,7 +81,7 @@ const Confirmation = () => {
             >
               Fai un Nuovo Calcolo
             </button>
-            
+
             <a
               href="https://www.samuroad.com"
               target="_blank"
